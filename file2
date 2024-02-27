@@ -1,3 +1,11 @@
+interface FieldConfig {
+  type: string;
+  label: string;
+  name: string;
+  validators?: string[];
+  value?: any;
+}
+
 import { Injectable } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 
