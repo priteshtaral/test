@@ -1,0 +1,105 @@
+<form *ngFor="let section of jsonConfig.sections" [formGroup]="forms[section.sectionName]" (ngSubmit)="submit()">
+  <fieldset>
+    <legend>{{section.sectionName}}</legend>
+    <div *ngFor="let field of section.fields">
+      <label>{{field.label}}</label>
+      <input *ngIf="field.type !== 'textarea'" [type]="field.type" [formControlName]="field.name">
+      <textarea *ngIf="field.type === 'textarea'" [formControlName]="field.name"></textarea>
+    </div>
+  </fieldset>
+  <button type="submit">Submit</button>
+</form>
+
+import { Component, OnInit } from '@angular/core';
+import { FormGroup } from '@angular/forms';
+import { FormService } from './form.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnInit {
+  forms: {[key: string]: FormGroup} = {};
+  jsonConfig = {/* JSON structure from Step 1 */};
+
+  constructor(private formService: FormService) {}
+
+  ngOnInit() {
+    this.forms = this.formService.createFormGroupFromJson(this.jsonConfig);
+  }
+
+  submit() {
+    // Process each section's form group as needed
+    for (const section in this.forms) {
+      console.log(`${section}:`, this.forms[section].value);
+    }
+  }
+}
+
+
+import { Injectable } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FormService {
+  constructor(private fb: FormBuilder) {}
+
+  createFormGroupFromJson(jsonConfig: any): {[key: string]: FormGroup} {
+    const formGroups: {[key: string]: FormGroup} = {};
+    jsonConfig.sections.forEach(section => {
+      const group = this.fb.group({});
+      section.fields.sort((a, b) => a.elementSequenceNumber - b.elementSequenceNumber).forEach(field => {
+        const control = this.fb.control(field.value || '', this.mapValidators(field.validators));
+        group.addControl(field.name, control);
+      });
+      formGroups[section.sectionName] = group;
+    });
+    return formGroups;
+  }
+
+  private mapValidators(validators) {
+    const mappedValidators = [];
+    // Example: if (validators.includes('required')) { mappedValidators.push(Validators.required); }
+    // Add more validators as per your validation logic
+    return mappedValidators;
+  }
+}
+
+{
+  "sections": [
+    {
+      "sectionName": "Personal Information",
+      "fields": [
+        {
+          "label": "First Name",
+          "type": "text",
+          "name": "firstName",
+          "elementSequenceNumber": 1,
+          "validators": []
+        },
+        {
+          "label": "Last Name",
+          "type": "text",
+          "name": "lastName",
+          "elementSequenceNumber": 2,
+          "validators": []
+        }
+      ]
+    },
+    {
+      "sectionName": "Contact Details",
+      "fields": [
+        {
+          "label": "Email",
+          "type": "email",
+          "name": "email",
+          "elementSequenceNumber": 1,
+          "validators": []
+        }
+      ]
+    }
+  ]
+}
