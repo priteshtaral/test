@@ -9,7 +9,7 @@
   </fieldset>
   <button type="submit">Submit</button>
 </form>
-
+<pre>{{ formDataDisplay }}</pre>
 
 
 
@@ -24,22 +24,30 @@ import { FormService } from './form.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  forms: {[key: string]: FormGroup} = {};
-  jsonConfig = {/* JSON structure from Step 1 */};
+  form: FormGroup;
+  formDataDisplay: string;
 
   constructor(private formService: FormService) {}
 
   ngOnInit() {
-    this.forms = this.formService.createFormGroupFromJson(this.jsonConfig);
+    this.form = this.formService.createFormGroupFromJson(/* your JSON structure */);
+    this.updateFormDataDisplay();
+
+    // Subscribe to form value changes
+    this.form.valueChanges.subscribe(() => {
+      this.updateFormDataDisplay();
+    });
+  }
+
+  updateFormDataDisplay() {
+    this.formDataDisplay = JSON.stringify(this.form.value, null, 2);
   }
 
   submit() {
-    // Process each section's form group as needed
-    for (const section in this.forms) {
-      console.log(`${section}:`, this.forms[section].value);
-    }
+    console.log(this.form.value);
   }
 }
+
 
 
 import { Injectable } from '@angular/core';
