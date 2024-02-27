@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'
@@ -8,15 +8,15 @@ export class DynamicFormService {
   constructor(private fb: FormBuilder) {}
 
   createFormGroup(formConfig: any): FormGroup {
-    const group = this.fb.group({});
+    const group = {};
     formConfig.fields.forEach(field => {
       const validators = this.mapValidators(field.validators);
-      group.addControl(field.name, this.fb.control('', validators));
+      group[field.name] = new FormControl('', validators);
     });
-    return group;
+    return new FormGroup(group);
   }
 
-  private mapValidators(validatorsConfig: string[]): Validators[] {
+  private mapValidators(validatorsConfig: string[]): any[] {
     const validators = [];
     if (validatorsConfig) {
       for (const validator of validatorsConfig) {
@@ -34,6 +34,7 @@ export class DynamicFormService {
     return validators;
   }
 }
+
 
 
 
