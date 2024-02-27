@@ -1,11 +1,16 @@
-<!-- src/app/app.component.html -->
-<form [formGroup]="form" (ngSubmit)="submit()">
-  <!-- Your form fields go here -->
+<form *ngFor="let section of jsonConfig.sections" [formGroup]="forms[section.sectionName]" (ngSubmit)="submit()">
+  <fieldset>
+    <legend>{{section.sectionName}}</legend>
+    <div *ngFor="let field of section.fields">
+      <label>{{field.label}}</label>
+      <input *ngIf="field.type !== 'textarea'" [type]="field.type" [formControlName]="field.name">
+      <textarea *ngIf="field.type === 'textarea'" [formControlName]="field.name"></textarea>
+    </div>
+  </fieldset>
   <button type="submit">Submit</button>
 </form>
 
-<!-- Display formatted form data -->
-<pre>{{ formDataDisplay }}</pre>
+
 
 
 
@@ -19,31 +24,22 @@ import { FormService } from './form.service';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  form: FormGroup;
-  formDataDisplay: string;
+  forms: {[key: string]: FormGroup} = {};
+  jsonConfig = {/* JSON structure from Step 1 */};
 
   constructor(private formService: FormService) {}
 
   ngOnInit() {
-    this.form = this.formService.createFormGroupFromJson(/* your JSON structure */);
-    this.updateFormDataDisplay();
-
-    // Subscribe to form value changes
-    this.form.valueChanges.subscribe(() => {
-      this.updateFormDataDisplay();
-    });
-  }
-
-  updateFormDataDisplay() {
-    this.formDataDisplay = JSON.stringify(this.form.value, null, 2);
+    this.forms = this.formService.createFormGroupFromJson(this.jsonConfig);
   }
 
   submit() {
-    console.log(this.form.value);
+    // Process each section's form group as needed
+    for (const section in this.forms) {
+      console.log(`${section}:`, this.forms[section].value);
+    }
   }
 }
-
-
 
 
 import { Injectable } from '@angular/core';
@@ -55,22 +51,23 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 export class FormService {
   constructor(private fb: FormBuilder) {}
 
-  createFormGroupFromJson(jsonConfig: any): FormGroup {
-    const formGroup = this.fb.group({});
+  createFormGroupFromJson(jsonConfig: any): {[key: string]: FormGroup} {
+    const formGroups: {[key: string]: FormGroup} = {};
     jsonConfig.sections.forEach(section => {
-      const sectionGroup = this.fb.group({});
+      const group = this.fb.group({});
       section.fields.sort((a, b) => a.elementSequenceNumber - b.elementSequenceNumber).forEach(field => {
         const control = this.fb.control(field.value || '', this.mapValidators(field.validators));
-        sectionGroup.addControl(field.name, control);
+        group.addControl(field.name, control);
       });
-      formGroup.addControl(section.sectionName, sectionGroup);
+      formGroups[section.sectionName] = group;
     });
-    return formGroup;
+    return formGroups;
   }
 
   private mapValidators(validators) {
     const mappedValidators = [];
-    // Example: Add your validation mapping logic here
+    // Example: if (validators.includes('required')) { mappedValidators.push(Validators.required); }
+    // Add more validators as per your validation logic
     return mappedValidators;
   }
 }
