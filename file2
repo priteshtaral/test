@@ -1,117 +1,91 @@
-<form *ngFor="let section of jsonConfig.sections" [formGroup]="forms[section.sectionName]" (ngSubmit)="submit()">
-  <fieldset>
-    <legend>{{section.sectionName}}</legend>
-    <div *ngFor="let field of section.fields">
-      <label>{{field.label}}</label>
-      <input *ngIf="field.type !== 'textarea'" [type]="field.type" [formControlName]="field.name">
-      <textarea *ngIf="field.type === 'textarea'" [formControlName]="field.name"></textarea>
-    </div>
-  </fieldset>
-  <button type="submit">Submit</button>
-</form>
-<pre>{{ formDataDisplay }}</pre>
-
-
-
-
-import { Component, OnInit } from '@angular/core';
-import { FormGroup } from '@angular/forms';
-import { FormService } from './form.service';
-
-@Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
-})
-export class AppComponent implements OnInit {
-  form: FormGroup;
-  formDataDisplay: string;
-
-  constructor(private formService: FormService) {}
-
-  ngOnInit() {
-    this.form = this.formService.createFormGroupFromJson(/* your JSON structure */);
-    this.updateFormDataDisplay();
-
-    // Subscribe to form value changes
-    this.form.valueChanges.subscribe(() => {
-      this.updateFormDataDisplay();
-    });
-  }
-
-  updateFormDataDisplay() {
-    this.formDataDisplay = JSON.stringify(this.form.value, null, 2);
-  }
-
-  submit() {
-    console.log(this.form.value);
-  }
-}
-
-
-
 import { Injectable } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'
 })
-export class FormService {
+export class DynamicFormService {
   constructor(private fb: FormBuilder) {}
 
-  createFormGroupFromJson(jsonConfig: any): {[key: string]: FormGroup} {
-    const formGroups: {[key: string]: FormGroup} = {};
-    jsonConfig.sections.forEach(section => {
-      const group = this.fb.group({});
-      section.fields.sort((a, b) => a.elementSequenceNumber - b.elementSequenceNumber).forEach(field => {
-        const control = this.fb.control(field.value || '', this.mapValidators(field.validators));
-        group.addControl(field.name, control);
-      });
-      formGroups[section.sectionName] = group;
+  createFormGroup(formConfig: any): FormGroup {
+    const group = this.fb.group({});
+    formConfig.fields.forEach(field => {
+      const validators = this.mapValidators(field.validators);
+      group.addControl(field.name, this.fb.control('', validators));
     });
-    return formGroups;
+    return group;
   }
 
-  private mapValidators(validators) {
-    const mappedValidators = [];
-    // Example: if (validators.includes('required')) { mappedValidators.push(Validators.required); }
-    // Add more validators as per your validation logic
-    return mappedValidators;
-  }
-}
-
-{
-  "sections": [
-    {
-      "sectionName": "Personal Information",
-      "fields": [
-        {
-          "label": "First Name",
-          "type": "text",
-          "name": "firstName",
-          "elementSequenceNumber": 1,
-          "validators": []
-        },
-        {
-          "label": "Last Name",
-          "type": "text",
-          "name": "lastName",
-          "elementSequenceNumber": 2,
-          "validators": []
+  private mapValidators(validatorsConfig: string[]): Validators[] {
+    const validators = [];
+    if (validatorsConfig) {
+      for (const validator of validatorsConfig) {
+        switch (validator) {
+          case 'required':
+            validators.push(Validators.required);
+            break;
+          case 'email':
+            validators.push(Validators.email);
+            break;
+          // Add other validators here as needed
         }
-      ]
-    },
-    {
-      "sectionName": "Contact Details",
-      "fields": [
-        {
-          "label": "Email",
-          "type": "email",
-          "name": "email",
-          "elementSequenceNumber": 1,
-          "validators": []
-        }
-      ]
+      }
     }
-  ]
+    return validators;
+  }
 }
+
+
+
+import { Component, OnInit } from '@angular/core';
+import { FormGroup } from '@angular/forms';
+import { DynamicFormService } from './dynamic-form.service';
+
+@Component({
+  selector: 'app-dynamic-form',
+  templateUrl: './dynamic-form.component.html',
+  styleUrls: ['./dynamic-form.component.css']
+})
+export class DynamicFormComponent implements OnInit {
+  form: FormGroup;
+  formConfig = {
+    "fields": [
+      {
+        "type": "text",
+        "label": "First Name",
+        "name": "firstName",
+        "validators": ["required"]
+      },
+      {
+        "type": "text",
+        "label": "Last Name",
+        "name": "lastName",
+        "validators": ["required"]
+      },
+      {
+        "type": "email",
+        "label": "Email",
+        "name": "email",
+        "validators": ["required", "email"]
+      }
+    ]
+  };
+
+  constructor(private dynamicFormService: DynamicFormService) {}
+
+  ngOnInit() {
+    this.form = this.dynamicFormService.createFormGroup(this.formConfig);
+  }
+}
+
+
+
+<!-- dynamic-form.component.html -->
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div *ngFor="let field of formConfig.fields">
+    <label>{{field.label}}</label>
+    <input *ngIf="field.type !== 'textarea'" [type]="field.type" [formControlName]="field.name">
+    <textarea *ngIf="field.type === 'textarea'" [formControlName]="field.name"></textarea>
+  </div>
+  <button type="submit">Submit</button>
+</form>
